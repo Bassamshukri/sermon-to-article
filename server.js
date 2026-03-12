@@ -7,14 +7,17 @@ const path = require("path");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+const MODAL_TRANSCRIBE_URL =
+  "https://bassamshukri--sermon-fast-transcriber-transcribe.modal.run";
+
 const uploadsDir = path.join(__dirname, "uploads");
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
 app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: "50mb" }));
+app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 app.use(express.static(path.join(__dirname, "public")));
 
 const storage = multer.diskStorage({
@@ -39,26 +42,15 @@ function buildArticleFromTranscript(transcript) {
   return [
     "## Sermon Article",
     "",
-    "This article was generated from the uploaded sermon.",
+    "This article was generated from the uploaded sermon transcript.",
     "",
     "### Main Message",
     cleaned,
     "",
     "### Reflection",
-    "This message encourages readers to reflect on the sermon and apply its lessons in daily life.",
+    "This sermon encourages reflection, faith, and practical application in everyday life.",
   ].join("\n");
 }
-
-/*
-  IMPORTANT:
-  Right now this backend is set up to work online and prove the full flow.
-
-  If you already have real Whisper / transcription logic from your old server.js,
-  put that logic inside the convert route where the MOCK section is marked.
-
-  For now, this version returns a working demo response so your frontend and backend
-  are fully connected in the cloud.
-*/
 
 app.get("/health", (_req, res) => {
   res.json({
@@ -78,18 +70,39 @@ app.post("/convert", upload.single("audio"), async (req, res) => {
     const uploadedPath = req.file.path;
     const originalName = req.file.originalname;
 
-    // ===== MOCK / SAFE CLOUD TEST VERSION =====
-    // Replace this block with your real transcription logic later.
-    const transcript = `Transcript placeholder for "${originalName}". Your frontend and backend are connected successfully.`;
+    const audioBuffer = fs.readFileSync(uploadedPath);
+    const audioBase64 = audioBuffer.toString("base64");
+
+    const modalResponse = await fetch(MODAL_TRANSCRIBE_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        filename: originalName,
+        audio_base64: audioBase64,
+      }),
+    });
+
+    const modalData = await modalResponse.json();
+
+    if (!modalResponse.ok || !modalData.success) {
+      return res.status(500).json({
+        error: "Transcription failed.",
+        details: modalData.error || "Unknown Modal error.",
+      });
+    }
+
+    const transcript = modalData.transcript || "";
     const article = buildArticleFromTranscript(transcript);
-    // ==========================================
 
     return res.json({
       success: true,
       filename: originalName,
-      storedFile: path.basename(uploadedPath),
       transcript,
       article,
+      language: modalData.language,
+      duration: modalData.duration,
     });
   } catch (error) {
     console.error("Convert error:", error);
