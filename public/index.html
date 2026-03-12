@@ -5,29 +5,23 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Sermon to Article Converter</title>
   <style>
-    * {
-      box-sizing: border-box;
-    }
-
+    * { box-sizing: border-box; }
     body {
       margin: 0;
       font-family: Arial, sans-serif;
       background: #f4f6fb;
       color: #111827;
     }
-
     .container {
       max-width: 900px;
       margin: 40px auto;
       padding: 24px;
     }
-
     h1 {
       margin-top: 0;
-      font-size: 48px;
+      font-size: 42px;
       line-height: 1.1;
     }
-
     .card {
       background: #ffffff;
       border-radius: 16px;
@@ -35,18 +29,15 @@
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
       margin-bottom: 24px;
     }
-
     .row {
       display: flex;
       gap: 12px;
       flex-wrap: wrap;
       align-items: center;
     }
-
     input[type="file"] {
       font-size: 16px;
     }
-
     button {
       border: none;
       background: #2563eb;
@@ -55,28 +46,22 @@
       font-size: 18px;
       border-radius: 12px;
       cursor: pointer;
-      transition: 0.2s ease;
     }
-
     button:hover {
       background: #1d4ed8;
     }
-
     button:disabled {
       opacity: 0.7;
       cursor: not-allowed;
     }
-
     .status {
       margin-top: 16px;
       font-weight: 600;
     }
-
     .output-title {
       margin: 0 0 12px 0;
       font-size: 22px;
     }
-
     .output-box {
       min-height: 140px;
       background: #f9fafb;
@@ -86,13 +71,11 @@
       white-space: pre-wrap;
       line-height: 1.6;
     }
-
     .small {
       color: #6b7280;
       font-size: 14px;
       margin-top: 8px;
     }
-
     .api-line {
       font-size: 14px;
       color: #4b5563;
@@ -107,12 +90,18 @@
 
     <div class="card">
       <div class="row">
-        <input id="audioFile" type="file" accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg" />
+        <input
+          id="audioFile"
+          type="file"
+          accept=".mp3,.wav,.m4a,.aac,.ogg,.flac,.wma,.mp4,.mov,.mkv,.webm,.avi,.m4v,audio/*,video/*"
+        />
         <button id="convertBtn">Convert Sermon</button>
       </div>
 
       <div class="status" id="statusText">Ready.</div>
-      <div class="small">Upload a sermon audio file, then click Convert Sermon.</div>
+      <div class="small">
+        Upload an audio or video sermon file, then click Convert Sermon.
+      </div>
       <div class="api-line" id="apiText"></div>
     </div>
 
@@ -146,7 +135,7 @@
       const file = fileInput.files[0];
 
       if (!file) {
-        statusText.textContent = "Please choose an audio file first.";
+        statusText.textContent = "Please choose an audio or video file first.";
         return;
       }
 
@@ -154,7 +143,7 @@
       formData.append("audio", file);
 
       convertBtn.disabled = true;
-      statusText.textContent = "Uploading and processing sermon...";
+      statusText.textContent = "Uploading and processing file...";
       transcriptBox.textContent = "";
       articleBox.textContent = "";
 
@@ -167,12 +156,13 @@
         const data = await response.json();
 
         if (!response.ok) {
-          throw new Error(data.error || "Conversion failed.");
+          throw new Error(data.error || data.details || "Conversion failed.");
         }
 
         transcriptBox.textContent = data.transcript || "No transcript returned.";
         articleBox.textContent = data.article || "No article returned.";
-        statusText.textContent = "Done.";
+        statusText.textContent =
+          `Done. Source type: ${data.source_type || "unknown"}, language: ${data.language || "unknown"}`;
       } catch (error) {
         console.error(error);
         statusText.textContent = `Error: ${error.message}`;
