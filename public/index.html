@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sermon to Article</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 24px;
+      background: #f3f4f6;
+      color: #111827;
+    }
+
+    h1, h2 {
+      color: #111827;
+    }
+
+    form {
+      margin-bottom: 24px;
+    }
+
+    input[type="file"] {
+      margin-bottom: 12px;
+    }
+
+    button {
+      background: #2563eb;
+      color: white;
+      border: none;
+      padding: 10px 18px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+
+    button:hover {
+      background: #1d4ed8;
+    }
+
+    .box {
+      background: white;
+      border-radius: 10px;
+      padding: 16px;
+      margin-bottom: 24px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      border: 1px solid #e5e7eb;
+    }
+
+    pre {
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+      word-break: break-word;
+      overflow-x: hidden;
+      margin: 0;
+      font-family: Arial, sans-serif;
+      font-size: 16px;
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+  <h1>Sermon to Article Converter</h1>
+
+  <form id="form">
+    <input type="file" id="audio" accept="audio/*,video/*,.mp4,.m4a" required />
+    <br />
+    <button type="submit">Convert Sermon</button>
+  </form>
+
+  <h2>Transcript</h2>
+  <div class="box">
+    <pre id="transcript"></pre>
+  </div>
+
+  <h2>Article</h2>
+  <div class="box">
+    <pre id="article"></pre>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
