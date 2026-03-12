@@ -1,87 +1,189 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Sermon to Article</title>
-
+  <title>Sermon to Article Converter</title>
   <style>
+    * {
+      box-sizing: border-box;
+    }
+
     body {
+      margin: 0;
       font-family: Arial, sans-serif;
-      max-width: 1000px;
-      margin: 0 auto;
+      background: #f4f6fb;
+      color: #111827;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 40px auto;
       padding: 24px;
-      background: #f3f4f6;
-      color: #111827;
     }
 
-    h1, h2 {
-      color: #111827;
+    h1 {
+      margin-top: 0;
+      font-size: 48px;
+      line-height: 1.1;
     }
 
-    form {
+    .card {
+      background: #ffffff;
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
       margin-bottom: 24px;
     }
 
+    .row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
     input[type="file"] {
-      margin-bottom: 12px;
+      font-size: 16px;
     }
 
     button {
+      border: none;
       background: #2563eb;
       color: white;
-      border: none;
-      padding: 10px 18px;
-      border-radius: 8px;
+      padding: 14px 22px;
+      font-size: 18px;
+      border-radius: 12px;
       cursor: pointer;
-      font-size: 16px;
+      transition: 0.2s ease;
     }
 
     button:hover {
       background: #1d4ed8;
     }
 
-    .box {
-      background: white;
-      border-radius: 10px;
-      padding: 16px;
-      margin-bottom: 24px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-      border: 1px solid #e5e7eb;
+    button:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
     }
 
-    pre {
+    .status {
+      margin-top: 16px;
+      font-weight: 600;
+    }
+
+    .output-title {
+      margin: 0 0 12px 0;
+      font-size: 22px;
+    }
+
+    .output-box {
+      min-height: 140px;
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 16px;
       white-space: pre-wrap;
-      word-wrap: break-word;
-      overflow-wrap: break-word;
-      word-break: break-word;
-      overflow-x: hidden;
-      margin: 0;
-      font-family: Arial, sans-serif;
-      font-size: 16px;
       line-height: 1.6;
+    }
+
+    .small {
+      color: #6b7280;
+      font-size: 14px;
+      margin-top: 8px;
+    }
+
+    .api-line {
+      font-size: 14px;
+      color: #4b5563;
+      margin-top: 10px;
+      word-break: break-all;
     }
   </style>
 </head>
 <body>
-  <h1>Sermon to Article Converter</h1>
+  <div class="container">
+    <h1>Sermon to Article Converter</h1>
 
-  <form id="form">
-    <input type="file" id="audio" accept="audio/*,video/*,.mp4,.m4a" required />
-    <br />
-    <button type="submit">Convert Sermon</button>
-  </form>
+    <div class="card">
+      <div class="row">
+        <input id="audioFile" type="file" accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg" />
+        <button id="convertBtn">Convert Sermon</button>
+      </div>
 
-  <h2>Transcript</h2>
-  <div class="box">
-    <pre id="transcript"></pre>
+      <div class="status" id="statusText">Ready.</div>
+      <div class="small">Upload a sermon audio file, then click Convert Sermon.</div>
+      <div class="api-line" id="apiText"></div>
+    </div>
+
+    <div class="card">
+      <h2 class="output-title">Transcript</h2>
+      <div class="output-box" id="transcriptBox"></div>
+    </div>
+
+    <div class="card">
+      <h2 class="output-title">Article</h2>
+      <div class="output-box" id="articleBox"></div>
+    </div>
   </div>
 
-  <h2>Article</h2>
-  <div class="box">
-    <pre id="article"></pre>
-  </div>
+  <script>
+    const API_BASE =
+      window.location.hostname.includes("vercel.app")
+        ? "https://sermon-to-article.onrender.com"
+        : "";
 
-  <script src="app.js"></script>
+    const fileInput = document.getElementById("audioFile");
+    const convertBtn = document.getElementById("convertBtn");
+    const statusText = document.getElementById("statusText");
+    const transcriptBox = document.getElementById("transcriptBox");
+    const articleBox = document.getElementById("articleBox");
+    const apiText = document.getElementById("apiText");
+
+    apiText.textContent = `API: ${API_BASE || "same-origin/local server"}`;
+
+    async function convertSermon() {
+      const file = fileInput.files[0];
+
+      if (!file) {
+        statusText.textContent = "Please choose an audio file first.";
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append("audio", file);
+
+      convertBtn.disabled = true;
+      statusText.textContent = "Uploading and processing sermon...";
+      transcriptBox.textContent = "";
+      articleBox.textContent = "";
+
+      try {
+        const response = await fetch(`${API_BASE}/convert`, {
+          method: "POST",
+          body: formData,
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || "Conversion failed.");
+        }
+
+        transcriptBox.textContent = data.transcript || "No transcript returned.";
+        articleBox.textContent = data.article || "No article returned.";
+        statusText.textContent = "Done.";
+      } catch (error) {
+        console.error(error);
+        statusText.textContent = `Error: ${error.message}`;
+        transcriptBox.textContent = "";
+        articleBox.textContent = "";
+      } finally {
+        convertBtn.disabled = false;
+      }
+    }
+
+    convertBtn.addEventListener("click", convertSermon);
+  </script>
 </body>
 </html>
