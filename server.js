@@ -37,7 +37,6 @@ const storage = multer.diskStorage({
 const upload = multer({
   storage,
   limits: {
-    // Good for long audio files. Very large videos still need direct cloud upload later.
     fileSize: 1024 * 1024 * 200,
   },
 });
@@ -77,7 +76,9 @@ function buildArticleFromTranscript(transcript, language = "en") {
   const cleaned = (transcript || "").trim();
 
   if (!cleaned) {
-    return "No article could be generated because the transcript is empty.";
+    return language === "ar"
+      ? "لا يمكن إنشاء مقال لأن النص المستخرج فارغ."
+      : "No article could be generated because the transcript is empty.";
   }
 
   if (language === "ar") {
@@ -271,10 +272,7 @@ app.post("/convert", upload.single("audio"), async (req, res) => {
       });
     }
 
-    let result;
-
-    // For audio and manageable videos, do chunking + parallel transcription.
-    result = await transcribeLongMediaInParallel(
+    const result = await transcribeLongMediaInParallel(
       uploadedPath,
       originalName,
       selectedLanguage

@@ -6,22 +6,26 @@
   <title>Sermon to Article Converter</title>
   <style>
     * { box-sizing: border-box; }
+
     body {
       margin: 0;
       font-family: Arial, sans-serif;
       background: #f4f6fb;
       color: #111827;
     }
+
     .container {
       max-width: 900px;
       margin: 40px auto;
       padding: 24px;
     }
+
     h1 {
       margin-top: 0;
       font-size: 42px;
       line-height: 1.1;
     }
+
     .card {
       background: #ffffff;
       border-radius: 16px;
@@ -29,15 +33,21 @@
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
       margin-bottom: 24px;
     }
+
     .row {
       display: flex;
       gap: 12px;
       flex-wrap: wrap;
       align-items: center;
+      margin-bottom: 12px;
     }
-    input[type="file"] {
+
+    input[type="file"],
+    select {
       font-size: 16px;
+      padding: 10px;
     }
+
     button {
       border: none;
       background: #2563eb;
@@ -47,21 +57,26 @@
       border-radius: 12px;
       cursor: pointer;
     }
+
     button:hover {
       background: #1d4ed8;
     }
+
     button:disabled {
       opacity: 0.7;
       cursor: not-allowed;
     }
+
     .status {
       margin-top: 16px;
       font-weight: 600;
     }
+
     .output-title {
       margin: 0 0 12px 0;
       font-size: 22px;
     }
+
     .output-box {
       min-height: 140px;
       background: #f9fafb;
@@ -71,16 +86,22 @@
       white-space: pre-wrap;
       line-height: 1.6;
     }
+
     .small {
       color: #6b7280;
       font-size: 14px;
       margin-top: 8px;
     }
+
     .api-line {
       font-size: 14px;
       color: #4b5563;
       margin-top: 10px;
       word-break: break-all;
+    }
+
+    label {
+      font-weight: 600;
     }
   </style>
 </head>
@@ -95,12 +116,22 @@
           type="file"
           accept=".mp3,.wav,.m4a,.aac,.ogg,.flac,.wma,.mp4,.mov,.mkv,.webm,.avi,.m4v,audio/*,video/*"
         />
+      </div>
+
+      <div class="row">
+        <label for="languageSelect">Language:</label>
+        <select id="languageSelect">
+          <option value="auto">Auto Detect</option>
+          <option value="en">English</option>
+          <option value="ar">Arabic</option>
+        </select>
+
         <button id="convertBtn">Convert Sermon</button>
       </div>
 
       <div class="status" id="statusText">Ready.</div>
       <div class="small">
-        Upload an audio or video sermon file, then click Convert Sermon.
+        Upload an audio or video sermon file, choose a language if you want, then click Convert Sermon.
       </div>
       <div class="api-line" id="apiText"></div>
     </div>
@@ -123,6 +154,7 @@
         : "";
 
     const fileInput = document.getElementById("audioFile");
+    const languageSelect = document.getElementById("languageSelect");
     const convertBtn = document.getElementById("convertBtn");
     const statusText = document.getElementById("statusText");
     const transcriptBox = document.getElementById("transcriptBox");
@@ -133,6 +165,7 @@
 
     async function convertSermon() {
       const file = fileInput.files[0];
+      const language = languageSelect.value;
 
       if (!file) {
         statusText.textContent = "Please choose an audio or video file first.";
@@ -141,11 +174,12 @@
 
       const formData = new FormData();
       formData.append("audio", file);
+      formData.append("language", language);
 
       convertBtn.disabled = true;
-      statusText.textContent = "Uploading and processing file...";
       transcriptBox.textContent = "";
       articleBox.textContent = "";
+      statusText.textContent = "Uploading and processing file... this may take a few minutes for long sermons.";
 
       try {
         const response = await fetch(`${API_BASE}/convert`, {
@@ -153,7 +187,16 @@
           body: formData,
         });
 
-        const data = await response.json();
+        const rawText = await response.text();
+        let data;
+
+        try {
+          data = JSON.parse(rawText);
+        } catch {
+          throw new Error(
+            `Server returned a non-JSON response. This usually means the file is too large or the server failed before returning JSON. Status: ${response.status}`
+          );
+        }
 
         if (!response.ok) {
           throw new Error(data.error || data.details || "Conversion failed.");
@@ -161,8 +204,9 @@
 
         transcriptBox.textContent = data.transcript || "No transcript returned.";
         articleBox.textContent = data.article || "No article returned.";
+
         statusText.textContent =
-          `Done. Source type: ${data.source_type || "unknown"}, language: ${data.language || "unknown"}`;
+          `Done. Source type: ${data.source_type || "unknown"}, detected language: ${data.language || "unknown"}, requested: ${data.requested_language || language}, chunks: ${data.chunk_count || 1}`;
       } catch (error) {
         console.error(error);
         statusText.textContent = `Error: ${error.message}`;
